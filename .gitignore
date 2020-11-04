@@ -1,0 +1,10 @@
+target/
+node_modules/
+.DS_Store
+yarn-error.log
+
+client/lib/
+client/build/
+client/src/**/*.bs.js
+client/.merlin
+client/.bsb.lock

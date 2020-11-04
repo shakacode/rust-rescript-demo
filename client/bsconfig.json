@@ -1,0 +1,23 @@
+{
+  "name": "client",
+  "sources": [
+    { "dir": "src", "subdirs": true }
+  ],
+  "bs-dependencies": [
+    "reason-react"
+  ],
+  "refmt": 3,
+  "reason": {
+    "react-jsx": 3
+  },
+  "bsc-flags": ["-open Belt"],
+  "ppx-flags": [],
+  "suffix": ".bs.js",
+  "package-specs": {
+    "module": "es6",
+    "in-source": true
+  },
+  "warnings": {
+    "number": "+A-40-42-44"
+  }
+}
