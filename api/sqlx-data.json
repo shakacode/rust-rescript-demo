@@ -1,0 +1,144 @@
+{
+  "db": "PostgreSQL",
+  "6148960a0df42f7ebc08d7391e4160fbf10df0225b51ac50d90d25e17d86ef6a": {
+    "query": "SELECT\n    id AS \"id: PostId\",\n    title,\n    content\nFROM posts\n",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id: PostId",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "title",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "content",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "7ab4588e69dc9d847a288bfc00c0ff7bb542b53619a1e366eb7f6d7adb6fbf7f": {
+    "query": "INSERT INTO posts (\n    title,\n    content\n)\nVALUES ($1, $2)\nRETURNING\n    id AS \"id: PostId\",\n    title,\n    content\n",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id: PostId",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "title",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "content",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "b7a441ac5d49e4fd3f373e99837bd77e2aa6fdaf7a52b9bc58552e0144e77075": {
+    "query": "UPDATE posts\nSET\n    title = $2,\n    content = $3\nWHERE id = $1\nRETURNING\n    id AS \"id: PostId\",\n    title,\n    content\n",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id: PostId",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "title",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "content",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "e63891fdb540307e5c7c1d5ffaacb9ed963764dc79a2528ddb2ce5bc032b656f": {
+    "query": "DELETE FROM posts\nWHERE id = $1\n",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "fa3a740a80b08d3c8c2cfcd3a0dae50f5b515466d6df91fe48ae1daa945b71ed": {
+    "query": "SELECT\n    id AS \"id: PostId\",\n    title,\n    content\nFROM posts\nWHERE id = $1\n",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id: PostId",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "title",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "content",
+          "type_info": "Text"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false
+      ]
+    }
+  }
+}

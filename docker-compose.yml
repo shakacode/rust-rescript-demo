@@ -1,0 +1,21 @@
+version: "3"
+
+volumes:
+  pg:
+
+networks:
+  network:
+    driver: "bridge"
+
+services:
+  pg:
+    image: "postgres:13.0"
+    volumes:
+      - "pg:/var/lib/postgresql/data"
+    networks:
+      - "network"
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+    tty: true

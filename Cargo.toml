@@ -1,4 +1,22 @@
+[package]
+name = "rust-rescript-demo"
+version = "0.0.1"
+edition = "2018"
+authors = ["Alex Fedoseev <alex.fedoseev@gmail.com>"]
+
+[[bin]]
+name = "cli"
+path = "./cli/cli.rs"
+
+[dependencies]
+tokio = { version = "0.3.3", features = ["rt-multi-thread", "macros", "io-std", "io-util", "time", "process", "signal"] }
+clap = "3.0.0-beta.2"
+console = "0.13.0"
+dotenv = "0.15.0"
+lazy_static = "1.4.0"
+rand = "0.7.3"
+
 [workspace]
 members = [
-  "server"
+  "api"
 ]
