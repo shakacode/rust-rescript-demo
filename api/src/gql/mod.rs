@@ -4,9 +4,10 @@ pub mod schema;
 
 #[macro_use]
 mod db;
+#[macro_use]
+mod result;
 
 mod mutations;
 mod queries;
-mod result;
 
 use result::{GqlError, GqlOk, GqlResult};

@@ -4,14 +4,19 @@
     { "dir": "src", "subdirs": true }
   ],
   "bs-dependencies": [
-    "reason-react"
+    "reason-react",
+    "rescript-logger",
+    "@reasonml-community/graphql-ppx"
   ],
   "refmt": 3,
   "reason": {
     "react-jsx": 3
   },
   "bsc-flags": ["-open Belt"],
-  "ppx-flags": [],
+  "ppx-flags": [
+    "rescript-logger/ppx",
+    "@reasonml-community/graphql-ppx/ppx"
+  ],
   "suffix": ".bs.js",
   "package-specs": {
     "module": "es6",

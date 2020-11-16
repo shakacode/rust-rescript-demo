@@ -1,6 +1,8 @@
+use actix_cors::Cors;
 use actix_web::{
     guard::{Get, Post},
-    web, App, HttpServer,
+    http::header,
+    web, App, HttpResponse, HttpServer,
 };
 
 use crate::{env, gql, pg};
@@ -16,11 +18,29 @@ pub async fn run() -> std::io::Result<()> {
     );
 
     HttpServer::new(move || {
-        let app = App::new().data(pg.clone()).data(gql.clone()).service(
-            web::resource("/api")
-                .guard(Post())
-                .to(gql::http::api::endpoint),
+        let web_app = format!(
+            "http://{host}:{port}",
+            host = env::web_host(),
+            port = env::web_port()
         );
+        let cors = Cors::default()
+            .allowed_origin(&web_app)
+            .allowed_methods(vec!["POST"])
+            .allowed_header(header::CONTENT_TYPE)
+            .max_age(3600);
+        let health_path = &env::api_health_path();
+        let gql_path = &env::api_graphql_path();
+
+        let app = App::new()
+            .data(pg.clone())
+            .data(gql.clone())
+            .wrap(cors)
+            .route(health_path, web::get().to(|| HttpResponse::NoContent()))
+            .service(
+                web::resource(gql_path)
+                    .guard(Post())
+                    .to(gql::http::api::endpoint),
+            );
 
         #[cfg(debug_assertions)]
         return app.service(

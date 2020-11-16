@@ -6,6 +6,7 @@ authors = ["Alex Fedoseev <alex.fedoseev@gmail.com>"]
 
 [dependencies]
 actix-web = "3.2.0"
+actix-cors = "0.5.1"
 graphql = { package = "async-graphql", version = "2.0.12" }
 graphql-actix-web = { package = "async-graphql-actix-web", version = "2.0.12" }
 sqlx = { version = "0.4.0-beta.1", default-features = false, features = [ "runtime-actix", "macros", "postgres", "offline", "uuid" ] }

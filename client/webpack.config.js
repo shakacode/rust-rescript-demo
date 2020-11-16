@@ -1,3 +1,4 @@
+const webpack = require("webpack");
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
@@ -17,6 +18,11 @@ module.exports = {
     contentBase: "./build",
   },
   plugins: [
+    new webpack.EnvironmentPlugin([
+      "API_HOST",
+      "API_PORT",
+      "API_GRAPHQL_PATH",
+    ]),
     new CleanWebpackPlugin({
       cleanStaleWebpackAssets: false,
     }),

@@ -1,5 +1,4 @@
 use graphql::Context as GqlContext;
-use serde::Serialize;
 use sqlx::Error as SqlxError;
 
 use crate::{
@@ -8,11 +7,11 @@ use crate::{
     pg::queries as db,
 };
 
-#[derive(Serialize, Copy, Clone)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum Error {
-    PostNotFound,
-}
+gql_error!(
+    pub enum Error {
+        PostNotFound,
+    }
+);
 
 pub async fn exec(id: PostId, ctx: &GqlContext<'_>) -> GqlResult<Post, Error> {
     let res = db::post_get_by_id::exec(id, db!(ctx)?).await;

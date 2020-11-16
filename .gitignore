@@ -10,3 +10,4 @@ client/build/
 client/src/**/*.bs.js
 client/.merlin
 client/.bsb.lock
+client/.graphql_ppx_cache
