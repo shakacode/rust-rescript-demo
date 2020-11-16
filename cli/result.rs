@@ -7,7 +7,7 @@ pub type Ok = ();
 pub enum Error {
     Io(io::Error),
     Piped(process::ExitStatus),
-    NothingToExecute { cmd: &'static [&'static str] },
+    NothingToExecute,
 }
 
 impl From<io::Error> for Error {

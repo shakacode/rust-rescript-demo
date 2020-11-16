@@ -1,6 +1,6 @@
 use clap::clap_app;
 
-use crate::{error, printer, services::*, Error, Exec, Result, TcpAddr, CFG};
+use crate::{error, services::*, Error, Exec, Result, TcpAddr, CFG};
 
 pub struct App(clap::App<'static>);
 
@@ -10,6 +10,7 @@ impl App {
             (version: "0.0.1")
             (about: "Rust + ReScript Demo CLI")
             (author: "Alex Fedoseev <alex.fedoseev@gmail.com>")
+            (@setting ArgRequiredElseHelp)
             (@subcommand app =>
               (about: "Runs the app")
               (@arg "rescript-log-level": --"rescript-log-level" +takes_value "Sets log level for ReScript app")
@@ -21,6 +22,7 @@ impl App {
             (@subcommand rescript =>
                 (about: "ReScript commands")
                 (visible_aliases: &["res"])
+                (@setting ArgRequiredElseHelp)
                 (@subcommand build =>
                   (about: "Builds ReScript app")
                   (visible_aliases: &["b"])
@@ -45,6 +47,7 @@ impl App {
             (@subcommand database =>
                 (about: "Database commands")
                 (visible_aliases: &["db"])
+                (@setting ArgRequiredElseHelp)
                 (@subcommand create => (about: "Creates database"))
                 (@subcommand drop => (about: "Drops database"))
                 (@subcommand prepare => (about: "Creates/updates database JSON schema used by the app"))
@@ -55,6 +58,7 @@ impl App {
                 (@subcommand migrations =>
                     (about: "Postgres migration commands")
                     (visible_aliases: &["mg", "mig"])
+                    (@setting ArgRequiredElseHelp)
                     (@subcommand new =>
                       (about: "Creates a migration")
                       (@setting AllowExternalSubcommands)
@@ -70,13 +74,9 @@ impl App {
         ))
     }
 
-    pub fn inner(&self) -> &clap::App<'static> {
-        &self.0
-    }
-
-    pub async fn run(&self) -> Result {
-        let app = &self.0;
-        let matches = app.clone().get_matches();
+    pub async fn run(self) -> Result {
+        let app = self.0;
+        let matches = app.get_matches();
 
         match matches.subcommand() {
             Some(("app", args)) => {
@@ -135,7 +135,7 @@ impl App {
                         .await
                     }
                 },
-                Some(_) | None => Err(Error::NothingToExecute { cmd: &["rescript"] }),
+                Some(_) | None => Err(Error::NothingToExecute),
             },
             Some(("database", database)) => match database.subcommand() {
                 Some(("create", _)) => {
@@ -165,24 +165,19 @@ impl App {
                         Some((migration, _)) => {
                             Exec::cmd(postgres::create_migration(migration.to_string())).await
                         }
-                        None => {
-                            printer::print_help(app, &["database", "migrations", "new"]);
-                            Err(error::other("You must provide a migration name").into())
-                        }
+                        None => Err(error::other("You must provide a migration name").into()),
                     },
                     Some(("run", _)) => {
                         postgres::run_one_off_cmds_against_db(vec![postgres::run_migrations()])
                             .await
                     }
-                    Some(_) | None => Err(Error::NothingToExecute {
-                        cmd: &["database", "migrations"],
-                    }),
+                    Some(_) | None => Err(Error::NothingToExecute),
                 },
-                Some(_) | None => Err(Error::NothingToExecute { cmd: &["database"] }),
+                Some(_) | None => Err(Error::NothingToExecute),
             },
             Some(("install", _)) => Exec::cmd(cli::release(cli::ReleaseCtx::Install)).await,
             Some(("rebuild", _)) => Exec::cmd(cli::release(cli::ReleaseCtx::Update)).await,
-            Some(_) | None => Err(Error::NothingToExecute { cmd: &[] }),
+            Some(_) | None => Err(Error::NothingToExecute),
         }
     }
 }

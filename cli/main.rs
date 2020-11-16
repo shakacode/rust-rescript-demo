@@ -44,8 +44,7 @@ async fn main() {
             printer::print_error(error);
             process::exit(1);
         }
-        Err(Error::NothingToExecute { cmd }) => {
-            printer::print_help(app.inner(), cmd);
+        Err(Error::NothingToExecute) => {
             process::exit(1);
         }
     };

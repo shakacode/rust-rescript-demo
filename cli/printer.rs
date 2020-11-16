@@ -1,6 +1,5 @@
 use std::io;
 
-use clap::App;
 use console::Color;
 
 pub fn print_info(msg: &str) {
@@ -39,21 +38,4 @@ pub fn print_non_zero_exit_code(code: i32) {
 
 pub fn print_done() {
     println!("\n✨ Done.");
-}
-
-pub fn print_help(app: &App, cmds: &[&str]) -> () {
-    match cmds {
-        &[] => app.to_owned().print_help().unwrap(),
-        &[cmd] => app
-            .find_subcommand(cmd)
-            .unwrap()
-            .to_owned()
-            .print_help()
-            .unwrap(),
-        &[cmd, ..] => {
-            let app = app.find_subcommand(cmd).unwrap();
-            let cmds = &cmds[1..];
-            print_help(app, cmds)
-        }
-    }
 }
