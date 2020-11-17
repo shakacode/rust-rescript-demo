@@ -273,7 +273,7 @@ impl Exec {
         Ok(())
     }
 
-    pub async fn pool(pool: Vec<Process>) -> Result {
+    pub async fn process_pool(pool: Vec<Process>) -> Result {
         let pool_size = pool.len();
         let exited_processes = Arc::new(AtomicUsize::new(0));
 

@@ -90,7 +90,7 @@ impl App {
                     true,
                 ))
                 .await?;
-                Exec::pool(vec![
+                Exec::process_pool(vec![
                     docker::compose::up(),
                     api::watch(),
                     client::rescript::watch(Some(rescript_log_level)),
