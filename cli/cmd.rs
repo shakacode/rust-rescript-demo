@@ -311,20 +311,26 @@ impl Exec {
 
             task::spawn(async move {
                 let cmd = &process.cmd();
-                let tag = {
-                    let txt = process.tag();
-                    let len = txt.len();
+                let tag = process.tag().to_string();
+                let colored_tag = console::style(tag.to_owned()).fg(color).bold();
+                let colored_tag_col = {
+                    let len = tag.len();
                     let pad = " ".repeat(if len < tag_col_length {
                         tag_col_length - len + 2
                     } else {
                         2
                     });
-                    console::style(format!("{}{}|", txt, pad)).fg(color).bold()
+                    console::style(format!(
+                        "{tag}{pad}{pipe}",
+                        tag = colored_tag,
+                        pad = pad,
+                        pipe = console::style("|").fg(color).bold()
+                    ))
                 };
 
                 println!(
                     "{tag} ❯ {msg} {cmd}",
-                    tag = tag,
+                    tag = colored_tag_col,
                     msg = console::style(format!("{}...", cmd.msg)).bold(),
                     cmd = console::style(format!("$ {} @ {}", cmd.run, cmd.dir.display())).dim()
                 );
@@ -352,7 +358,7 @@ impl Exec {
                 let mut child_stderr_reader = BufReader::new(child_stderr).lines();
 
                 task::spawn({
-                    let tag = tag.clone();
+                    let tag = colored_tag_col.clone();
                     async move {
                         while let Some(line) = child_stdout_reader.next_line().await.unwrap() {
                             println!("{} {}", tag, line);
@@ -361,7 +367,7 @@ impl Exec {
                 });
 
                 task::spawn({
-                    let tag = tag.clone();
+                    let tag = colored_tag_col.clone();
                     async move {
                         while let Some(line) = child_stderr_reader.next_line().await.unwrap() {
                             eprintln!("{} {}", tag, line);
@@ -373,20 +379,22 @@ impl Exec {
 
                 match res {
                     Ok(output) => match output.status.code() {
-                        Some(0) => {
-                            printer::print_info(&format!("Process {} exited with code 0.", tag,))
-                        }
+                        Some(0) => printer::print_info(&format!(
+                            "Process {} exited with code 0.",
+                            colored_tag
+                        )),
                         Some(code) => printer::print_warning(&format!(
                             "Process {} exited with non-zero code: {}",
-                            tag, code
+                            colored_tag, code
                         )),
-                        None => {
-                            printer::print_info(&format!("Process {} exited without code.", tag,))
-                        }
+                        None => printer::print_info(&format!(
+                            "Process {} exited without code.",
+                            colored_tag
+                        )),
                     },
                     Err(error) => printer::print_error(error::other(format!(
                         "Process {} exited with error: {}",
-                        tag, error
+                        colored_tag, error
                     ))),
                 }
                 exited_processes.fetch_add(1, Ordering::Relaxed);

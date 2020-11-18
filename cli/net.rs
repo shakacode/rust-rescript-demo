@@ -62,7 +62,7 @@ impl TcpAddr {
                         Err(_) => time::sleep(Duration::from_millis(250)).await,
                     }
                 }
-                time::sleep(Duration::from_millis(3000)).await; // giving some time to warm up
+                time::sleep(Duration::from_millis(1500)).await; // giving some time to warm up
                 Ok(())
             }
             Err(error) => Err(error::other(format!(

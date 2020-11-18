@@ -1,4 +1,22 @@
-use crate::{Cmd, Dir, Process, CFG};
+use crate::{env, Cmd, Dir, Process, CFG};
+
+pub fn build() -> Cmd {
+    Cmd {
+        run: "cargo build --package=api".to_string(),
+        env: env::empty(),
+        dir: Dir::Root,
+        msg: "Building API",
+    }
+}
+
+pub fn clean() -> Cmd {
+    Cmd {
+        run: "cargo clean --package=api".to_string(),
+        env: env::empty(),
+        dir: Dir::Root,
+        msg: "Cleaning API",
+    }
+}
 
 pub fn up() -> Process {
     Process::new(

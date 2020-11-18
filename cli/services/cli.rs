@@ -11,8 +11,8 @@ pub fn release(ctx: ReleaseCtx) -> Cmd {
         env: env::empty(),
         dir: Dir::Root,
         msg: match ctx {
-            ReleaseCtx::Install => "Installing rust-rescript-demo cli",
-            ReleaseCtx::Update => "Updating rust-rescript-demo cli",
+            ReleaseCtx::Install => "Installing CLI",
+            ReleaseCtx::Update => "Updating CLI",
         },
     }
 }

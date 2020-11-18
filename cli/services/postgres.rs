@@ -1,4 +1,4 @@
-use crate::{env, services::docker, Cmd, Dir, Exec, Result, CFG};
+use crate::{env, services::docker, Cmd, Dir, Exec, Result, TcpAddr, CFG};
 
 pub fn create_database() -> Cmd {
     Cmd {
@@ -49,7 +49,12 @@ pub async fn run_one_off_cmds_against_db(cmds: Vec<Cmd>) -> Result {
     let pg_status = docker::compose::pg_status().await?;
 
     if let docker::compose::ServiceStatus::Stopped = pg_status {
+        let pg = TcpAddr {
+            host: CFG.pg_host(),
+            port: CFG.pg_port(),
+        };
         Exec::cmd(docker::compose::start_detached_pg()).await?;
+        pg.wait().await?;
     }
 
     Exec::cmd_seq(cmds).await?;

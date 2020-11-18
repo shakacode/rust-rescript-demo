@@ -24,7 +24,7 @@ pub fn merge(x1: Env, x2: Env) -> Env {
     x1.into_iter().chain(x2).collect()
 }
 
-fn parent() -> Env {
+pub fn parent() -> Env {
     let envs = std::env::vars();
     let mut vars = HashMap::new();
     for (k, v) in envs {

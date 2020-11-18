@@ -11,13 +11,22 @@ impl App {
             (about: "Rust + ReScript Demo CLI")
             (author: "Alex Fedoseev <alex.fedoseev@gmail.com>")
             (@setting ArgRequiredElseHelp)
-            (@subcommand app =>
-              (about: "Runs the app")
+            (@subcommand setup => (about: "Sets up environment incl. database, dependencies, etc."))
+            (@subcommand reset => (about: "Resets environment incl. database, dependencies, etc."))
+            (@subcommand develop =>
+              (visible_aliases: &["dev"])
+              (about: "Runs the app incl. api server, web client etc")
               (@arg "rescript-log-level": --"rescript-log-level" +takes_value "Sets log level for ReScript app")
             )
             (@subcommand api =>
                 (about: "API server commands")
-                (@arg watch: -w --watch "Recompiles an API server on a source change")
+                (@setting ArgRequiredElseHelp)
+                (@subcommand build => (about: "Builds API"))
+                (@subcommand clean => (about: "Cleans API artefacts"))
+                (@subcommand run =>
+                    (about: "Runs API server")
+                    (@arg watch: -w --watch "Recompiles an API server on a source change")
+                )
             )
             (@subcommand rescript =>
                 (about: "ReScript commands")
@@ -36,7 +45,7 @@ impl App {
                   (@arg log: -l --log +takes_value "Sets log level for ReScript app")
                 )
                 (@subcommand clean =>
-                  (about: "Cleans ReScript app")
+                  (about: "Cleans ReScript app artefacts")
                   (visible_aliases: &["c"])
                 )
                 (@subcommand graphql =>
@@ -44,9 +53,8 @@ impl App {
                   (visible_aliases: &["gql"])
                 )
             )
-            (@subcommand database =>
+            (@subcommand db =>
                 (about: "Database commands")
-                (visible_aliases: &["db"])
                 (@setting ArgRequiredElseHelp)
                 (@subcommand create => (about: "Creates database"))
                 (@subcommand drop => (about: "Drops database"))
@@ -66,10 +74,17 @@ impl App {
                     (@subcommand run => (about: "Runs migrations"))
                 )
             )
-            (@subcommand install => (about: "Installs this cli"))
-            (@subcommand rebuild =>
-              (about: "Rebuild this cli")
-              (visible_aliases: &["reb"])
+            (@subcommand cli =>
+              (about: "CLI commands")
+              (@setting ArgRequiredElseHelp)
+              (@subcommand install =>
+                (about: "Installs this CLI")
+                (visible_aliases: &["i"])
+              )
+              (@subcommand update =>
+                (about: "Updates this CLI")
+                (visible_aliases: &["u"])
+              )
             )
         ))
     }
@@ -79,7 +94,42 @@ impl App {
         let matches = app.get_matches();
 
         match matches.subcommand() {
-            Some(("app", args)) => {
+            Some(("setup", _)) => {
+                // Checking system packages
+                sys::check().await?;
+
+                // Setting up API
+                Exec::cmd(api::build()).await?;
+
+                // Setting up Yarn
+                Exec::cmd(yarn::install()).await?;
+
+                // Setting up Postgres
+                postgres::run_one_off_cmds_against_db(vec![
+                    postgres::create_database(),
+                    postgres::run_migrations(),
+                ])
+                .await
+            }
+            Some(("reset", _)) => {
+                // Resetting API
+                Exec::cmd(api::clean()).await?;
+                Exec::cmd(api::build()).await?;
+
+                // Resetting Yarn
+                Exec::cmd(yarn::remove_client_node_modules()).await?;
+                Exec::cmd(yarn::remove_root_node_modules()).await?;
+                Exec::cmd(yarn::install()).await?;
+
+                // Resetting Postgres
+                postgres::run_one_off_cmds_against_db(vec![
+                    postgres::drop_database(),
+                    postgres::create_database(),
+                    postgres::run_migrations(),
+                ])
+                .await
+            }
+            Some(("develop", args)) => {
                 let rescript_log_level = match args.value_of("rescript-log-level") {
                     None => client::rescript::LogLevel::Debug,
                     Some(val) => val.into(),
@@ -98,13 +148,18 @@ impl App {
                 ])
                 .await
             }
-            Some(("api", args)) => {
-                if args.is_present("watch") {
-                    Exec::process(api::watch()).await
-                } else {
-                    Exec::process(api::up()).await
+            Some(("api", api)) => match api.subcommand() {
+                Some(("build", _)) => Exec::cmd(api::build()).await,
+                Some(("clean", _)) => Exec::cmd(api::clean()).await,
+                Some(("run", args)) => {
+                    if args.is_present("watch") {
+                        Exec::process(api::watch()).await
+                    } else {
+                        Exec::process(api::up()).await
+                    }
                 }
-            }
+                Some(_) | None => Err(Error::NothingToExecute),
+            },
             Some(("rescript", rescript)) => match rescript.subcommand() {
                 Some(("build", args)) => {
                     let log_level = args.value_of("log").map(Into::into);
@@ -137,7 +192,7 @@ impl App {
                 },
                 Some(_) | None => Err(Error::NothingToExecute),
             },
-            Some(("database", database)) => match database.subcommand() {
+            Some(("db", db)) => match db.subcommand() {
                 Some(("create", _)) => {
                     postgres::run_one_off_cmds_against_db(vec![postgres::create_database()]).await
                 }
@@ -175,8 +230,11 @@ impl App {
                 },
                 Some(_) | None => Err(Error::NothingToExecute),
             },
-            Some(("install", _)) => Exec::cmd(cli::release(cli::ReleaseCtx::Install)).await,
-            Some(("rebuild", _)) => Exec::cmd(cli::release(cli::ReleaseCtx::Update)).await,
+            Some(("cli", cli)) => match cli.subcommand() {
+                Some(("install", _)) => Exec::cmd(cli::release(cli::ReleaseCtx::Install)).await,
+                Some(("update", _)) => Exec::cmd(cli::release(cli::ReleaseCtx::Update)).await,
+                Some(_) | None => Err(Error::NothingToExecute),
+            },
             Some(_) | None => Err(Error::NothingToExecute),
         }
     }
