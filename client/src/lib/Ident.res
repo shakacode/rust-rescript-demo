@@ -1,6 +1,7 @@
 module type Interface = {
   type t
 
+  external make: string => t = "%identity"
   external toString: t => string = "%identity"
 
   let parse: Js.Json.t => t
@@ -10,6 +11,7 @@ module type Interface = {
 module Make = (): Interface => {
   type t = string
 
+  external make: string => t = "%identity"
   external toString: t => string = "%identity"
 
   let parse = json => json->Js.Json.decodeString->Option.getUnsafe
