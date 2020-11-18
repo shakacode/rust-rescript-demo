@@ -11,7 +11,9 @@ module Query = %graphql(
 )
 
 module Variables = {
-  let make = (~id, ~title, ~content) => {Query.input: {id: id, title: title, content: content}}
+  let make = (~id, ~title, ~content) => {
+    Query.input: {id: id->PostId.serialize, title: title, content: content},
+  }
 }
 
 module ExtendedError = {

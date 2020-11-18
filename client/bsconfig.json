@@ -5,6 +5,7 @@
   ],
   "bs-dependencies": [
     "reason-react",
+    "reason-react-update",
     "rescript-logger",
     "@reasonml-community/graphql-ppx"
   ],

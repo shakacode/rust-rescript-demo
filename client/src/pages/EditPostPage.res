@@ -1,3 +1,35 @@
+module EditorView = {
+  @react.component
+  let make = (~post: Post.t) => {
+    let initialInput = React.useMemo0(() => {
+      PostEditor.title: post.title,
+      content: post.content,
+    })
+
+    <PostEditor
+      initialInput
+      cancelRoute={Route.post(~id=post.id)}
+      onSubmit={(input, ~onFailure as fail) => {
+        open PostMutation__Update
+        Api.exec(
+          ~query=module(Query),
+          ~variables=Variables.make(~id=post.id, ~title=input.title, ~content=input.content),
+          ~extendedError=ExtendedError.parse->Some,
+          res =>
+            switch res {
+            | Ok(res) => Route.post(~id=res.post.id)->Router.push
+            | Error(error) =>
+              switch error {
+              | ExtendedError(PostNotFound) => fail(~reason="Post not found", ())
+              | OpaqueFailure => fail()
+              }
+            },
+        )
+      }}
+    />
+  }
+}
+
 type state = Loading | Ready(Post.t) | Failure
 
 type action = ShowPostEditor(Post.t) | Fail
@@ -29,13 +61,7 @@ let make = (~id) => {
   <div>
     {switch state {
     | Loading => "Loading..."->React.string
-    | Ready(post) =>
-      %log.debug(post)
-      <div>
-        <div> <input type_="text" placeholder="Title" value={post.title} onChange=ignore /> </div>
-        <div> <textarea value={post.content} onChange=ignore /> </div>
-        <div> <Router.Link route={Route.post(~id)}> {"Done"->React.string} </Router.Link> </div>
-      </div>
+    | Ready(post) => <EditorView post />
     | Failure => "Oh no"->React.string
     }}
   </div>
