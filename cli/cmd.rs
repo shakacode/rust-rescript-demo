@@ -52,8 +52,8 @@ enum ProcessStatus {
 }
 
 pub enum ProcessOutput {
-    // Visible,
-    Hidden,
+    Visible,
+    // Hidden,
 }
 
 pub struct Process {
@@ -93,8 +93,8 @@ impl Process {
         );
 
         let stdio = match output {
-            // ProcessOutput::Visible => Stdio::inherit,
-            ProcessOutput::Hidden => Stdio::null,
+            ProcessOutput::Visible => Stdio::inherit,
+            // ProcessOutput::Hidden => Stdio::null,
         };
 
         let child = Command::new(Cmd::SHELL)
@@ -257,7 +257,7 @@ impl Exec {
             let process_exited = process_exited.clone();
 
             async move {
-                process.up(ProcessOutput::Hidden).await;
+                process.up(ProcessOutput::Visible).await;
                 while !cmd_done.load(Ordering::Relaxed) {
                     time::sleep(Duration::from_millis(500)).await;
                 }
