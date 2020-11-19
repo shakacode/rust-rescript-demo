@@ -13,7 +13,7 @@ tokio = { version = "0.3.3", features = ["rt-multi-thread", "macros", "io-std", 
 clap = "3.0.0-beta.2"
 console = "0.13.0"
 dotenv = "0.15.0"
-hyper = { git = "https://github.com/hyperium/hyper" }
+hyper = { git = "https://github.com/hyperium/hyper", features = ["client", "http1", "tcp"] }
 lazy_static = "1.4.0"
 rand = "0.7.3"
 
