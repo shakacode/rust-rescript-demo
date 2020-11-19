@@ -9,11 +9,11 @@ name = "rrd"
 path = "./cli/main.rs"
 
 [dependencies]
-tokio = { version = "0.3.3", features = ["rt-multi-thread", "macros", "io-std", "io-util", "time", "process", "signal", "net"] }
+tokio = { version = "0.3.4", features = ["rt-multi-thread", "macros", "io-std", "io-util", "time", "process", "signal", "net"] }
 clap = "3.0.0-beta.2"
 console = "0.13.0"
 dotenv = "0.15.0"
-hyper = { git = "https://github.com/hyperium/hyper", features = ["client", "http1", "tcp"] }
+hyper = { git = "https://github.com/hyperium/hyper", rev = "ed2b22a7f66899d338691552fbcb6c0f2f4e06b9", features = ["client", "http1", "tcp"] }
 lazy_static = "1.4.0"
 rand = "0.7.3"
 
