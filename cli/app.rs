@@ -12,6 +12,7 @@ impl App {
             (author: "Alex Fedoseev <alex.fedoseev@gmail.com>")
             (@setting ArgRequiredElseHelp)
             (@subcommand setup => (about: "Sets up environment incl. database, dependencies, etc."))
+            (@subcommand update => (about: "Updates environment incl. database, dependencies, etc."))
             (@subcommand reset => (about: "Resets environment incl. database, dependencies, etc."))
             (@subcommand develop =>
               (visible_aliases: &["dev"])
@@ -111,7 +112,27 @@ impl App {
                 ])
                 .await
             }
+            Some(("update", _)) => {
+                // Updating CLI
+                // TODO: It's prolly better to run from post-merge/post-checkout git hook, though the latter might be annoying
+                Exec::cmd(cli::release(cli::ReleaseCtx::Update)).await?;
+
+                // Checking system packages
+                sys::check().await?;
+
+                // Updating API
+                Exec::cmd(api::build()).await?;
+
+                // Updating Yarn
+                Exec::cmd(yarn::install()).await?;
+
+                // Running migrations
+                postgres::run_one_off_cmds_against_db(vec![postgres::run_migrations()]).await
+            }
             Some(("reset", _)) => {
+                // Checking system packages
+                sys::check().await?;
+
                 // Resetting API
                 Exec::cmd(api::clean()).await?;
                 Exec::cmd(api::build()).await?;
