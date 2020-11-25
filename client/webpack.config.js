@@ -3,6 +3,8 @@ const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 
+const isProduction = process.env.NODE_ENV === "production";
+
 module.exports = {
   mode: "development",
   entry: {
@@ -13,7 +15,7 @@ module.exports = {
     path: path.resolve(__dirname, "build"),
     publicPath: "/",
   },
-  devtool: "inline-source-map",
+  devtool: "cheap-eval-source-map",
   devServer: {
     contentBase: "./build",
     historyApiFallback: true,
@@ -31,4 +33,31 @@ module.exports = {
       template: "src/index.html",
     }),
   ],
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          { loader: "babel-loader" },
+          {
+            loader: "@linaria/webpack4-loader",
+            options: {
+              displayName: !isProduction,
+              sourceMap: !isProduction,
+            },
+          },
+        ],
+      },
+      {
+        test: /\.css$/,
+        use: [
+          "style-loader",
+          {
+            loader: "css-loader",
+            options: { modules: "global" },
+          },
+        ],
+      },
+    ],
+  },
 };

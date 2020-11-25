@@ -4,11 +4,12 @@ let push = route => route->Route.toString->ReasonReactRouter.push
 
 module Link = {
   @react.component
-  let make = (~route, ~children) => {
+  let make = (~route, ~className, ~children) => {
     let location = route->Route.toString
 
     <a
       href=location
+      className
       onClick={event =>
         if (
           !(event->ReactEvent.Mouse.defaultPrevented) &&

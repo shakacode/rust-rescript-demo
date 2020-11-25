@@ -6,27 +6,29 @@ module EditorView = {
       content: post.content,
     })
 
-    <PostEditor
-      initialInput
-      cancelRoute={Route.post(~id=post.id)}
-      onSubmit={(input, ~onFailure as fail) => {
-        open PostMutation__Update
-        Api.exec(
-          ~query=module(Query),
-          ~variables=Variables.make(~id=post.id, ~title=input.title, ~content=input.content),
-          ~extendedError=ExtendedError.parse->Some,
-          res =>
-            switch res {
-            | Ok(res) => Route.post(~id=res.post.id)->Router.push
-            | Error(error) =>
-              switch error {
-              | ExtendedError(PostNotFound) => fail(~reason="Post not found", ())
-              | OpaqueFailure => fail()
-              }
-            },
-        )
-      }}
-    />
+    <Layout.Content>
+      <PostEditor
+        initialInput
+        cancelRoute={Route.post(~id=post.id)}
+        onSubmit={(input, ~onFailure as fail) => {
+          open PostMutation__Update
+          Api.exec(
+            ~query=module(Query),
+            ~variables=Variables.make(~id=post.id, ~title=input.title, ~content=input.content),
+            ~extendedError=ExtendedError.parse->Some,
+            res =>
+              switch res {
+              | Ok(res) => Route.post(~id=res.post.id)->Router.push
+              | Error(error) =>
+                switch error {
+                | ExtendedError(PostNotFound) => fail(~reason="Post not found", ())
+                | OpaqueFailure => fail()
+                }
+              },
+          )
+        }}
+      />
+    </Layout.Content>
   }
 }
 
@@ -58,11 +60,12 @@ let make = (~id) => {
     )
   })
 
-  <div>
+  <Layout>
+    <Layout.Header> <H1> {"Edit post"->React.string} </H1> </Layout.Header>
     {switch state {
     | Loading => "Loading..."->React.string
     | Ready(post) => <EditorView post />
     | Failure => "Oh no"->React.string
     }}
-  </div>
+  </Layout>
 }

@@ -1,3 +1,29 @@
+module Css = %css(
+  let headerControls = css`
+    display: grid;
+    grid-template-columns: max-content max-content;
+    grid-column-gap: 10px;
+    align-items: center;
+    justify-content: end;
+  `
+
+  let content = css`
+    display: grid;
+    grid-template-rows: max-content max-content;
+    grid-row-gap: 14px;
+  `
+
+  let post = css`
+    display: flex;
+    flex-flow: column nowrap;
+  `
+
+  let footer = css`
+    display: flex;
+    flex-flow: row nowrap;
+  `
+)
+
 module PostView = {
   type state =
     Viewing({deletionError: option<Api.Error.t<PostMutation__Delete.ExtendedError.t>>}) | Deleting
@@ -32,35 +58,44 @@ module PostView = {
     )
 
     <>
-      <div>
-        <h1> {post.title->React.string} </h1>
-        <div>
-          <button type_="button" onClick={_ => Route.editPost(~id=post.id)->Router.push}>
-            {"Edit"->React.string}
-          </button>
+      <Layout.HeaderWithControls>
+        <H1> {post.title->React.string} </H1>
+        <div className=Css.headerControls>
+          <div>
+            <Link.AsButton route={Route.editPost(~id=post.id)} size=SM style=Secondary>
+              {"Edit"->React.string}
+            </Link.AsButton>
+          </div>
+          <div>
+            {switch state {
+            | Viewing({deletionError}) => <>
+                <Button size=SM style=Danger onClick={_ => Delete->dispatch}>
+                  {"Delete"->React.string}
+                </Button>
+                {switch deletionError {
+                | Some(error) =>
+                  switch error {
+                  | ExtendedError(PostNotFound) => <div> {"Post not found"->React.string} </div>
+                  | OpaqueFailure => <div> {"Something went wrong"->React.string} </div>
+                  }
+                | None => React.null
+                }}
+              </>
+            | Deleting =>
+              <button type_="button" disabled=true> {"Deleting..."->React.string} </button>
+            }}
+          </div>
         </div>
-        <div>
-          {switch state {
-          | Viewing({deletionError}) => <>
-              <button type_="button" onClick={_ => Delete->dispatch}>
-                {"Delete"->React.string}
-              </button>
-              {switch deletionError {
-              | Some(error) =>
-                switch error {
-                | ExtendedError(PostNotFound) => <div> {"Post not found"->React.string} </div>
-                | OpaqueFailure => <div> {"Something went wrong"->React.string} </div>
-                }
-              | None => React.null
-              }}
-            </>
-          | Deleting =>
-            <button type_="button" disabled=true> {"Deleting..."->React.string} </button>
-          }}
+      </Layout.HeaderWithControls>
+      <Layout.Content>
+        <div className=Css.content>
+          <div className=Css.post> {post.content->React.string} </div>
+          <Hr />
+          <div className=Css.footer>
+            <Link route={Route.posts}> {"Back to posts"->React.string} </Link>
+          </div>
         </div>
-      </div>
-      <div> {post.content->React.string} </div>
-      <div> <Router.Link route={Route.posts}> {"Back to posts"->React.string} </Router.Link> </div>
+      </Layout.Content>
     </>
   }
 }
@@ -93,11 +128,11 @@ let make = (~id) => {
     )
   })
 
-  <div>
+  <Layout>
     {switch state {
     | Loading => "Loading..."->React.string
     | Ready(post) => <PostView post />
     | Failure => "Oh no"->React.string
     }}
-  </div>
+  </Layout>
 }

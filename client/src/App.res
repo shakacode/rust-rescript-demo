@@ -1,3 +1,5 @@
+include GlobalStyles
+
 @react.component
 let make = () => {
   let route = Router.useRouter()

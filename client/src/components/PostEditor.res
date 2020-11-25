@@ -1,3 +1,31 @@
+module Css = %css(
+  let form = css`
+    display: grid;
+    grid-auto-rows: max-content;
+    grid-template-columns: 1fr;
+    grid-row-gap: 30px;
+    align-items: center;
+    justify-items: end;
+  `
+
+  let row = css`
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: center;
+    justify-items: start;
+    width: 100%;
+  `
+
+  let buttons = css`
+    display: grid;
+    grid-template-columns: max-content max-content;
+    grid-column-gap: 24px;
+    align-items: center;
+    justify-content: end;
+    width: 100%;
+  `
+)
+
 type status = Editing({submissionStatus: option<result<unit, option<string>>>}) | Submitting
 
 type input = {
@@ -48,31 +76,29 @@ let make = (~initialInput, ~cancelRoute, ~onSubmit as submit: submit) => {
       },
   )
 
-  let submitting = React.useMemo1(() => {
-    switch state.status {
-    | Submitting => true
-    | Editing(_) => false
-    }
-  }, [state.status])
-
-  <form
-    onSubmit={event => {
-      event->ReactEvent.Form.preventDefault
-      Submit->dispatch
-    }}>
-    <div>
-      <input
-        type_="text"
+  <Form className=Css.form onSubmit={() => Submit->dispatch}>
+    <div className=Css.row>
+      <TextField
+        id="title"
         placeholder="Title"
-        disabled=submitting
         value=state.input.title
+        status=?{switch state.status {
+        | Editing(_) => None
+        | Submitting => Some(InsensiblyDisabled)
+        }}
         onChange={event => UpdateTitleInput(ReactEvent.Form.target(event)["value"])->dispatch}
       />
     </div>
-    <div>
-      <textarea
-        disabled=submitting
+    <div className=Css.row>
+      <TextArea
+        id="content"
+        placeholder="Content"
+        rows=5
         value=state.input.content
+        status=?{switch state.status {
+        | Editing(_) => None
+        | Submitting => Some(InsensiblyDisabled)
+        }}
         onChange={event => UpdateContentInput(ReactEvent.Form.target(event)["value"])->dispatch}
       />
     </div>
@@ -86,11 +112,18 @@ let make = (~initialInput, ~cancelRoute, ~onSubmit as submit: submit) => {
         }}
       </div>
     }}
-    <div>
-      <button type_="submit" disabled=submitting>
-        {(submitting ? "Saving..." : "Save")->React.string}
-      </button>
-      <Router.Link route={cancelRoute}> {"Cancel"->React.string} </Router.Link>
+    <div className=Css.buttons>
+      <Link route={cancelRoute}> {"Cancel"->React.string} </Link>
+      <Button
+        kind=#submit
+        size=MD
+        style=Primary
+        status=?{switch state.status {
+        | Submitting => Some(Busy({label: "Saving..."}))
+        | Editing(_) => None
+        }}>
+        {"Save"->React.string}
+      </Button>
     </div>
-  </form>
+  </Form>
 }

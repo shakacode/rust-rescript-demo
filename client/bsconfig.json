@@ -6,6 +6,7 @@
   "bs-dependencies": [
     "reason-react",
     "reason-react-update",
+    "re-classnames",
     "rescript-logger",
     "@reasonml-community/graphql-ppx"
   ],
@@ -15,8 +16,9 @@
   },
   "bsc-flags": ["-open Belt"],
   "ppx-flags": [
-    "rescript-logger/ppx",
-    "@reasonml-community/graphql-ppx/ppx"
+    "@reasonml-community/graphql-ppx/ppx",
+    "rescript-linaria/ppx",
+    "rescript-logger/ppx"
   ],
   "suffix": ".bs.js",
   "package-specs": {
