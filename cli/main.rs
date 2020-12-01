@@ -16,7 +16,7 @@ use std::process;
 use app::App;
 use cfg::CFG;
 use cmd::{Cmd, Exec, Process};
-use env::Env;
+use env::{Env, EnvData};
 use loc::{Dir, File};
 use net::{HttpAddr, TcpAddr};
 use result::{error, Error, Result};

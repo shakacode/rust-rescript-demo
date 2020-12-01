@@ -13,7 +13,7 @@ impl Root {
     }
 
     fn find(dir: PathBuf) -> PathBuf {
-        if dir.join(".env").exists() {
+        if dir.join("Cargo.lock").exists() {
             dir
         } else {
             Root::find(
@@ -32,16 +32,20 @@ impl Root {
 #[derive(Clone)]
 pub enum Dir {
     Root,
+    Env,
     Api,
     Client,
+    ClientCfg,
 }
 
 impl Dir {
     pub fn loc(&self) -> PathBuf {
         match self {
             Dir::Root => ROOT.path(),
+            Dir::Env => Dir::Root.loc().join("env"),
             Dir::Api => Dir::Root.loc().join("api"),
             Dir::Client => Dir::Root.loc().join("client"),
+            Dir::ClientCfg => Dir::Client.loc().join("cfg"),
         }
     }
 
@@ -62,13 +66,78 @@ impl Dir {
 }
 
 pub enum File {
-    DotEnv,
+    Env,
+    EnvExample,
+    DevEnv,
+    DevEnvExample,
+    ProdEnv,
+    ProdEnvExample,
+    TestEnv,
+    TestEnvExample,
+    WebpackDevConfig,
+    WebpackProdConfig,
 }
 
 impl File {
     pub fn loc(&self) -> PathBuf {
         match self {
-            File::DotEnv => Dir::Root.loc().join(".env"),
+            File::Env => Dir::Env.loc().join(".env"),
+            File::EnvExample => Dir::Env.loc().join("env.example"),
+            File::DevEnv => Dir::Env.loc().join(".env.development"),
+            File::DevEnvExample => Dir::Env.loc().join("env.development.example"),
+            File::ProdEnv => Dir::Env.loc().join(".env.production"),
+            File::ProdEnvExample => Dir::Env.loc().join("env.production.example"),
+            File::TestEnv => Dir::Env.loc().join(".env.test"),
+            File::TestEnvExample => Dir::Env.loc().join("env.test.example"),
+            File::WebpackDevConfig => Dir::ClientCfg.loc().join("webpack.development.config.js"),
+            File::WebpackProdConfig => Dir::ClientCfg.loc().join("webpack.production.config.js"),
         }
+    }
+
+    pub fn file_name(&self) -> String {
+        let loc = self.loc();
+        let os_filename = loc
+            .file_name()
+            .unwrap_or_else(|| panic!("Failed to get filename from {}", loc.display()));
+        os_filename
+            .to_str()
+            .unwrap_or_else(|| {
+                panic!(
+                    "Failed to convert OsStr {:?} to &str for {}",
+                    os_filename,
+                    loc.display(),
+                )
+            })
+            .to_string()
+    }
+
+    pub fn exists(&self) -> bool {
+        self.loc().exists()
+    }
+
+    pub fn relative_to(&self, dir: &Dir) -> String {
+        let dir_loc = dir.loc();
+        let file_loc = self.loc();
+        let os_path = file_loc
+            .strip_prefix(&dir_loc)
+            .unwrap_or_else(|err| {
+                panic!(
+                    "Failed to build relative path for file {} over the directory {}: {}",
+                    file_loc.display(),
+                    dir_loc.display(),
+                    err
+                )
+            })
+            .to_str();
+        os_path
+            .unwrap_or_else(|| {
+                panic!(
+                    "Failed to convert OsStr {:?} to &str for file {} and directory {}",
+                    os_path,
+                    file_loc.display(),
+                    dir_loc.display(),
+                )
+            })
+            .to_string()
     }
 }

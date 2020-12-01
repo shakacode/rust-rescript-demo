@@ -1,9 +1,5 @@
 use actix_cors::Cors;
-use actix_web::{
-    guard::{Get, Post},
-    http::header,
-    web, App, HttpResponse, HttpServer,
-};
+use actix_web::{guard, http::header, web, App, HttpResponse, HttpServer};
 
 use crate::{env, gql, pg};
 
@@ -38,14 +34,14 @@ pub async fn run() -> std::io::Result<()> {
             .route(health_path, web::get().to(|| HttpResponse::NoContent()))
             .service(
                 web::resource(gql_path)
-                    .guard(Post())
+                    .guard(guard::Post())
                     .to(gql::http::api::endpoint),
             );
 
         #[cfg(debug_assertions)]
         return app.service(
             web::resource("/")
-                .guard(Get())
+                .guard(guard::Get())
                 .to(gql::http::playground::endpoint),
         );
 

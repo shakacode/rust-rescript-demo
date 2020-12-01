@@ -3,6 +3,11 @@ node_modules/
 .DS_Store
 yarn-error.log
 
+env/.env
+env/.env.development
+env/.env.production
+env/.env.test
+
 client/lib/
 client/build/
 client/src/**/*.bs.js

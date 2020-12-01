@@ -1,15 +1,15 @@
-use crate::{env, Dir, Env};
+use crate::{env, Dir, EnvData};
 
-fn env() -> Env {
+fn env() -> EnvData {
     // PATH with `node_modules/.bin` included
-    env::one(
+    EnvData::one(
         "PATH",
         env::path::extend(Dir::Client.extend(&["node_modules", ".bin"])),
     )
 }
 
 pub mod rescript {
-    use crate::{env, Cmd, Dir, Env, Process};
+    use crate::{Cmd, Dir, EnvData, Process};
 
     #[derive(Clone)]
     pub enum LogLevel {
@@ -45,7 +45,7 @@ pub mod rescript {
         }
     }
 
-    fn env(log_level: Option<LogLevel>) -> Env {
+    fn env(log_level: Option<LogLevel>) -> EnvData {
         let rescript_env = {
             let mut env = vec![("NINJA_ANSI_FORCED", "1")];
             if let Some(log_level) = log_level {
@@ -53,7 +53,7 @@ pub mod rescript {
             }
             env
         };
-        env::merge(super::env(), env::new(rescript_env))
+        super::env().merge(EnvData::from_vec(rescript_env))
     }
 
     pub fn make_world(log_level: Option<LogLevel>, clean: bool) -> Cmd {
@@ -108,37 +108,55 @@ pub mod rescript {
 }
 
 pub mod webpack {
-    use crate::{env, Cmd, Dir, Process, CFG};
+    use crate::{Cmd, Dir, Env, File, Process, CFG};
 
-    pub fn serve() -> Process {
+    // TODO: Extract production build into own function with own server
+    pub fn serve(env: &Env) -> Process {
+        let client_dir = Dir::Client;
+
         Process::new(
             "webpack",
             Cmd {
                 run: format!(
-                    "webpack serve --host {} --port {}",
-                    host = CFG.web_host(),
-                    port = CFG.web_port()
+                    "webpack serve --host {host} --port {port} --config {config}",
+                    host = CFG.web_host(env),
+                    port = CFG.web_port(env),
+                    config = match env {
+                        Env::Dev => File::WebpackDevConfig.relative_to(&client_dir),
+                        Env::Prod => File::WebpackProdConfig.relative_to(&client_dir),
+                        Env::Test => unimplemented!(),
+                    }
                 ),
-                env: env::merge(CFG.env(), super::env()),
-                dir: Dir::Client,
-                msg: "Running Webpack development server",
+                env: super::env()
+                    .merge(CFG.env(env))
+                    .add("NODE_ENV", env.to_str()),
+                dir: client_dir,
+                msg: match env {
+                    Env::Dev => "Running Webpack development server",
+                    Env::Prod => "Running Webpack production server",
+                    Env::Test => "Running Webpack test server",
+                },
             },
         )
     }
 }
 
 pub mod graphql {
-    use crate::{Cmd, Dir, CFG};
+    use crate::{Cmd, Dir, Env, CFG};
 
-    pub fn write_schema() -> Cmd {
+    pub fn write_schema(env: &Env) -> Cmd {
         Cmd {
             run: format!(
                 "get-graphql-schema {} --json > graphql_schema.json",
-                CFG.api_graphql_url().format()
+                CFG.api_graphql_url(env).format()
             ),
             env: super::env(),
             dir: Dir::Client,
-            msg: "Writing GraphQL schema",
+            msg: match env {
+                Env::Dev => "Writing GraphQL schema against development server",
+                Env::Prod => "Writing GraphQL schema against production server",
+                Env::Test => "Writing GraphQL schema against test server",
+            },
         }
     }
 }

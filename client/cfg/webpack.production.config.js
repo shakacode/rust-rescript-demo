@@ -1,27 +1,31 @@
 const webpack = require("webpack");
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const CssPlugin = require("mini-css-extract-plugin");
+const OptimizeCssAssetsPlugin = require("optimize-css-assets-webpack-plugin");
+const CompressionPlugin = require("compression-webpack-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 
-const isProduction = process.env.NODE_ENV === "production";
-
 module.exports = {
-  mode: "development",
+  mode: "production",
+  context: process.cwd(),
   entry: {
     app: "./src/index.bs.js",
   },
   output: {
-    filename: "[name].bundle.js",
-    path: path.resolve(__dirname, "build"),
+    path: path.resolve(process.cwd(), "build"),
     publicPath: "/",
+    filename: "[name].[hash].js",
+    chunkFilename: "[id].[hash].js",
   },
-  devtool: "cheap-eval-source-map",
+  devtool: false,
   devServer: {
-    contentBase: "./build",
+    contentBase: "./",
     historyApiFallback: true,
   },
   plugins: [
     new webpack.EnvironmentPlugin([
+      "NODE_ENV",
       "API_HOST",
       "API_PORT",
       "API_GRAPHQL_PATH",
@@ -32,18 +36,31 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: "src/index.html",
     }),
+    new CssPlugin({
+      filename: "[name].[hash].css",
+      chunkFilename: "[id].[hash].css",
+    }),
+    new OptimizeCssAssetsPlugin({
+      cssProcessor: require("cssnano"),
+    }),
+    new CompressionPlugin({
+      deleteOriginalAssets: false,
+    }),
   ],
   module: {
     rules: [
       {
         test: /\.js$/,
         use: [
-          { loader: "babel-loader" },
+          {
+            loader: "babel-loader",
+            options: { compact: true },
+          },
           {
             loader: "@linaria/webpack4-loader",
             options: {
-              displayName: !isProduction,
-              sourceMap: !isProduction,
+              displayName: false,
+              sourceMap: false,
             },
           },
         ],
@@ -51,7 +68,7 @@ module.exports = {
       {
         test: /\.css$/,
         use: [
-          "style-loader",
+          CssPlugin.loader,
           {
             loader: "css-loader",
             options: { modules: "global" },

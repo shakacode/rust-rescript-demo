@@ -1,6 +1,6 @@
 use clap::clap_app;
 
-use crate::{error, services::*, Error, Exec, Result, TcpAddr, CFG};
+use crate::{error, services::*, Env, Error, Exec, Result, TcpAddr, CFG};
 
 pub struct App(clap::App<'static>);
 
@@ -17,15 +17,22 @@ impl App {
             (@subcommand develop =>
               (visible_aliases: &["dev"])
               (about: "Runs the app incl. api server, web client etc")
+              (@arg prod: -p --production "Runs a production build")
               (@arg "rescript-log-level": --"rescript-log-level" +takes_value "Sets log level for ReScript app")
             )
             (@subcommand api =>
                 (about: "API server commands")
                 (@setting ArgRequiredElseHelp)
-                (@subcommand build => (about: "Builds API"))
+                (@subcommand build =>
+                  (about: "Builds API")
+                  (@arg release: -r --release "Builds release")
+                )
                 (@subcommand clean => (about: "Cleans API artefacts"))
                 (@subcommand run =>
                     (about: "Runs API server")
+                    (@group env =>
+                      (@arg release: -r --release "Runs release build")
+                    )
                     (@arg watch: -w --watch "Recompiles an API server on a source change")
                 )
             )
@@ -52,17 +59,52 @@ impl App {
                 (@subcommand graphql =>
                   (about: "Writes GraphQL schema used by ReScript app")
                   (visible_aliases: &["gql"])
+                  (@group env =>
+                      (@arg dev: -d --development "Uses development API server [default]")
+                      (@arg prod: -p --production "Uses production API server")
+                      (@arg test: -t --test "Uses test API server")
+                  )
                 )
             )
             (@subcommand db =>
                 (about: "Database commands")
                 (@setting ArgRequiredElseHelp)
-                (@subcommand create => (about: "Creates database"))
-                (@subcommand drop => (about: "Drops database"))
-                (@subcommand prepare => (about: "Creates/updates database JSON schema used by the app"))
+                (@subcommand create =>
+                  (about: "Creates database")
+                  (@group env =>
+                      (@attributes ... +required)
+                      (@arg dev: -d --development "Creates development database")
+                      (@arg prod: -p --production "Creates production database")
+                      (@arg test: -t --test "Creates test database")
+                  )
+                )
+                (@subcommand drop =>
+                  (about: "Drops database")
+                  (@group env =>
+                      (@attributes ... +required)
+                      (@arg dev: -d --development "Drops development database")
+                      (@arg prod: -p --production "Drops production database")
+                      (@arg test: -t --test "Drops test database")
+                  )
+                )
                 (@subcommand reset =>
                   (about: "Resets Postgres datbases")
-                  (@arg prepare: --prepare "Creates/updates JSON schema used by the app")
+                  (@arg prepare: --prepare "Prepares database schema")
+                  (@group env =>
+                      (@attributes ... +required)
+                      (@arg dev: -d --development "Resets development database")
+                      (@arg prod: -p --production "Resets production database")
+                      (@arg test: -t --test "Resets test database")
+                  )
+                )
+                (@subcommand schema =>
+                  (about: "Prepares database schema")
+                  (@group env =>
+                      (@attributes ... +required)
+                      (@arg dev: -d --development "Prepares schema against development database")
+                      (@arg prod: -p --production "Prepares schema against production database")
+                      (@arg test: -t --test "Prepares schema against test database")
+                  )
                 )
                 (@subcommand migrations =>
                     (about: "Postgres migration commands")
@@ -72,7 +114,15 @@ impl App {
                       (about: "Creates a migration")
                       (@setting AllowExternalSubcommands)
                     )
-                    (@subcommand run => (about: "Runs migrations"))
+                    (@subcommand run =>
+                      (about: "Runs migrations")
+                      (@group env =>
+                          (@attributes ... +required)
+                          (@arg dev: -d --development "Runs migrations against development database")
+                          (@arg prod: -p --production "Runs migrations against production database")
+                          (@arg test: -t --test "Runs migrations against test database")
+                      )
+                    )
                 )
             )
             (@subcommand cli =>
@@ -96,46 +146,53 @@ impl App {
 
         match matches.subcommand() {
             Some(("setup", _)) => {
-                // Checking system packages
-                sys::check().await?;
+                // Checking system and environment
+                sys::ensure_prerequisites().await?;
 
                 // Setting up API
-                Exec::cmd(api::build()).await?;
+                Exec::cmd(api::build_dev()).await?;
 
                 // Setting up Yarn
                 Exec::cmd(yarn::install()).await?;
 
                 // Setting up Postgres
-                postgres::run_one_off_cmds_against_db(vec![
-                    postgres::create_database(),
-                    postgres::run_migrations(),
-                ])
-                .await
+                let mut cmds = vec![];
+                for env in CFG.envs_with_unique_dbs() {
+                    cmds.extend(vec![
+                        postgres::create_database(&env),
+                        postgres::run_migrations(&env),
+                    ])
+                }
+                postgres::run_one_off_cmds_against_db(cmds).await
             }
             Some(("update", _)) => {
                 // Updating CLI
-                // TODO: It's prolly better to run from post-merge/post-checkout git hook, though the latter might be annoying
+                // NOTE: It's prolly better to run from post-merge/post-checkout git hook, though the latter is annoying
                 Exec::cmd(cli::release(cli::ReleaseCtx::Update)).await?;
 
-                // Checking system packages
-                sys::check().await?;
+                // Checking system and environment
+                sys::ensure_prerequisites().await?;
 
                 // Updating API
-                Exec::cmd(api::build()).await?;
+                Exec::cmd(api::build_dev()).await?;
 
                 // Updating Yarn
                 Exec::cmd(yarn::install()).await?;
 
                 // Running migrations
-                postgres::run_one_off_cmds_against_db(vec![postgres::run_migrations()]).await
+                let mut cmds = vec![];
+                for env in CFG.envs_with_unique_dbs() {
+                    cmds.extend(vec![postgres::run_migrations(&env)])
+                }
+                postgres::run_one_off_cmds_against_db(cmds).await
             }
             Some(("reset", _)) => {
-                // Checking system packages
-                sys::check().await?;
+                // Checking system and environment
+                sys::ensure_prerequisites().await?;
 
                 // Resetting API
                 Exec::cmd(api::clean()).await?;
-                Exec::cmd(api::build()).await?;
+                Exec::cmd(api::build_dev()).await?;
 
                 // Resetting Yarn
                 Exec::cmd(yarn::remove_client_node_modules()).await?;
@@ -143,40 +200,67 @@ impl App {
                 Exec::cmd(yarn::install()).await?;
 
                 // Resetting Postgres
-                postgres::run_one_off_cmds_against_db(vec![
-                    postgres::drop_database(),
-                    postgres::create_database(),
-                    postgres::run_migrations(),
-                ])
-                .await
+                let mut cmds = vec![];
+                for env in CFG.envs_with_unique_dbs() {
+                    cmds.extend(vec![
+                        postgres::drop_database(&env),
+                        postgres::create_database(&env),
+                        postgres::run_migrations(&env),
+                    ])
+                }
+                postgres::run_one_off_cmds_against_db(cmds).await
             }
             Some(("develop", args)) => {
                 let rescript_log_level = match args.value_of("rescript-log-level") {
                     None => client::rescript::LogLevel::Debug,
                     Some(val) => val.into(),
                 };
-
                 Exec::cmd(client::rescript::make_world(
                     Some(rescript_log_level.to_owned()),
                     true,
                 ))
                 .await?;
-                Exec::process_pool(vec![
-                    docker::compose::up(),
-                    api::watch(),
-                    client::rescript::watch(Some(rescript_log_level)),
-                    client::webpack::serve(),
-                ])
-                .await
+
+                if args.is_present("prod") {
+                    Exec::process_pool(vec![
+                        docker::compose::up(),
+                        api::watch_release(),
+                        client::rescript::watch(Some(rescript_log_level)),
+                        client::webpack::serve(&Env::Prod),
+                    ])
+                    .await
+                } else {
+                    Exec::process_pool(vec![
+                        docker::compose::up(),
+                        api::watch_dev(),
+                        client::rescript::watch(Some(rescript_log_level)),
+                        client::webpack::serve(&Env::Dev),
+                    ])
+                    .await
+                }
             }
             Some(("api", api)) => match api.subcommand() {
-                Some(("build", _)) => Exec::cmd(api::build()).await,
+                Some(("build", args)) => {
+                    if args.is_present("release") {
+                        Exec::cmd(api::build_release()).await
+                    } else {
+                        Exec::cmd(api::build_dev()).await
+                    }
+                }
                 Some(("clean", _)) => Exec::cmd(api::clean()).await,
                 Some(("run", args)) => {
-                    if args.is_present("watch") {
-                        Exec::process(api::watch()).await
+                    if args.is_present("release") {
+                        if args.is_present("watch") {
+                            Exec::process(api::watch_release()).await
+                        } else {
+                            Exec::process(api::run_release()).await
+                        }
                     } else {
-                        Exec::process(api::up()).await
+                        if args.is_present("watch") {
+                            Exec::process(api::watch_dev()).await
+                        } else {
+                            Exec::process(api::run_dev()).await
+                        }
                     }
                 }
                 Some(_) | None => Err(Error::NothingToExecute),
@@ -197,41 +281,65 @@ impl App {
                     Exec::process(client::rescript::watch(log_level)).await
                 }
                 Some(("clean", _)) => Exec::cmd(client::rescript::clean_world()).await,
-                Some(("graphql", _)) => match CFG.api_health_url().ping().await {
-                    Ok(()) => Exec::cmd(client::graphql::write_schema()).await,
-                    Err(()) => {
-                        Exec::dependent_cmd(
-                            client::graphql::write_schema(),
-                            api::up(),
-                            TcpAddr {
-                                host: CFG.api_host(),
-                                port: CFG.api_port(),
-                            },
-                        )
-                        .await
+                Some(("graphql", args)) => {
+                    let env = App::env_from_args(args).unwrap_or(Env::Dev);
+                    match CFG.api_health_url(&env).ping().await {
+                        Ok(()) => Exec::cmd(client::graphql::write_schema(&env)).await,
+                        Err(()) => {
+                            Exec::dependent_cmd(
+                                client::graphql::write_schema(&env),
+                                match env {
+                                    Env::Dev => api::run_dev(),
+                                    Env::Prod => api::run_release(),
+                                    Env::Test => unimplemented!(),
+                                },
+                                TcpAddr {
+                                    host: CFG.api_host(&env),
+                                    port: CFG.api_port(&env),
+                                },
+                            )
+                            .await
+                        }
                     }
-                },
+                }
                 Some(_) | None => Err(Error::NothingToExecute),
             },
             Some(("db", db)) => match db.subcommand() {
-                Some(("create", _)) => {
-                    postgres::run_one_off_cmds_against_db(vec![postgres::create_database()]).await
+                Some(("create", args)) => {
+                    let mut cmds = vec![];
+                    for env in App::envs_from_args(args) {
+                        cmds.extend(vec![postgres::create_database(&env)])
+                    }
+                    postgres::run_one_off_cmds_against_db(cmds).await
                 }
-                Some(("drop", _)) => {
-                    postgres::run_one_off_cmds_against_db(vec![postgres::drop_database()]).await
+                Some(("drop", args)) => {
+                    let mut cmds = vec![];
+                    for env in App::envs_from_args(args) {
+                        cmds.extend(vec![postgres::drop_database(&env)])
+                    }
+                    postgres::run_one_off_cmds_against_db(cmds).await
                 }
-                Some(("prepare", _)) => {
-                    postgres::run_one_off_cmds_against_db(vec![postgres::prepare_database()]).await
+                Some(("schema", args)) => {
+                    let mut cmds = vec![];
+                    for env in App::envs_from_args(args) {
+                        cmds.extend(vec![postgres::prepare_database_schema(&env)])
+                    }
+                    postgres::run_one_off_cmds_against_db(cmds).await
                 }
                 Some(("reset", args)) => {
-                    let mut cmds = vec![
-                        postgres::drop_database(),
-                        postgres::create_database(),
-                        postgres::run_migrations(),
-                    ];
+                    let envs = App::envs_from_args(args);
+                    let default_env = envs.first().unwrap().clone();
+                    let mut cmds = vec![];
+                    for env in envs {
+                        cmds.extend(vec![
+                            postgres::drop_database(&env),
+                            postgres::create_database(&env),
+                            postgres::run_migrations(&env),
+                        ])
+                    }
 
                     if args.is_present("prepare") {
-                        cmds.push(postgres::prepare_database());
+                        cmds.push(postgres::prepare_database_schema(&default_env));
                     }
 
                     postgres::run_one_off_cmds_against_db(cmds).await
@@ -243,9 +351,12 @@ impl App {
                         }
                         None => Err(error::other("You must provide a migration name").into()),
                     },
-                    Some(("run", _)) => {
-                        postgres::run_one_off_cmds_against_db(vec![postgres::run_migrations()])
-                            .await
+                    Some(("run", args)) => {
+                        let mut cmds = vec![];
+                        for env in App::envs_from_args(args) {
+                            cmds.extend(vec![postgres::run_migrations(&env)])
+                        }
+                        postgres::run_one_off_cmds_against_db(cmds).await
                     }
                     Some(_) | None => Err(Error::NothingToExecute),
                 },
@@ -258,5 +369,31 @@ impl App {
             },
             Some(_) | None => Err(Error::NothingToExecute),
         }
+    }
+
+    fn env_from_args(args: &clap::ArgMatches) -> Option<Env> {
+        if args.is_present("dev") {
+            Some(Env::Dev)
+        } else if args.is_present("prod") {
+            Some(Env::Prod)
+        } else if args.is_present("test") {
+            Some(Env::Test)
+        } else {
+            None
+        }
+    }
+
+    fn envs_from_args(args: &clap::ArgMatches) -> Vec<Env> {
+        let mut envs = vec![];
+        if args.is_present("dev") {
+            envs.push(Env::Dev)
+        }
+        if args.is_present("prod") {
+            envs.push(Env::Prod)
+        }
+        if args.is_present("test") {
+            envs.push(Env::Test)
+        }
+        envs
     }
 }

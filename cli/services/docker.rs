@@ -3,7 +3,7 @@ pub mod compose {
 
     use tokio::process::Command;
 
-    use crate::{env, Cmd, Dir, Process};
+    use crate::{Cmd, Dir, EnvData, Process};
 
     const PG_SERVICE_ID: &str = "pg";
 
@@ -17,7 +17,7 @@ pub mod compose {
             "docker",
             Cmd {
                 run: "docker-compose up".to_string(),
-                env: env::empty(),
+                env: EnvData::empty(),
                 dir: Dir::Root,
                 msg: "Running Docker services",
             },
@@ -27,7 +27,7 @@ pub mod compose {
     pub fn start_detached_pg() -> Cmd {
         Cmd {
             run: format!("docker-compose up -d {}", PG_SERVICE_ID),
-            env: env::empty(),
+            env: EnvData::empty(),
             dir: Dir::Root,
             msg: "Running detached Postgres service",
         }
@@ -36,7 +36,7 @@ pub mod compose {
     pub fn stop_pg() -> Cmd {
         Cmd {
             run: format!("docker-compose stop {}", PG_SERVICE_ID),
-            env: env::empty(),
+            env: EnvData::empty(),
             dir: Dir::Root,
             msg: "Stopping Postgres service",
         }

@@ -1,4 +1,4 @@
-use crate::{env, Cmd, Dir};
+use crate::{Cmd, Dir, EnvData};
 
 pub enum ReleaseCtx {
     Install,
@@ -8,7 +8,7 @@ pub enum ReleaseCtx {
 pub fn release(ctx: ReleaseCtx) -> Cmd {
     Cmd {
         run: "cargo install --path .".to_string(),
-        env: env::empty(),
+        env: EnvData::empty(),
         dir: Dir::Root,
         msg: match ctx {
             ReleaseCtx::Install => "Installing CLI",

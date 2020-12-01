@@ -18,12 +18,12 @@ use tokio::{
     task, time,
 };
 
-use crate::{error, printer, Dir, Env, Error, Result, TcpAddr};
+use crate::{error, printer, Dir, EnvData, Error, Result, TcpAddr};
 
 #[derive(Clone)]
 pub struct Cmd {
     pub run: String,
-    pub env: Env,
+    pub env: EnvData,
     pub dir: Dir,
     pub msg: &'static str,
 }
