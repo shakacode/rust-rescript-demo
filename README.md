@@ -67,12 +67,9 @@ Windows should be supported. Though I'm totally unfamiliar with this operating s
 This project is quite raw and missing a bunch of pieces.
 
 Some of them off the top of my head:
-- No CSS
-- No components library
-- No separation of development/production/test environments
-- No validations: neither server-side nor client-side
 - No tests
 - No i18n
+- No validations: neither server-side nor client-side
 - No caching mechanism in the web client
 
 I'm sure there's a lot more. Feel free to [create an issue](https://github.com/shakacode/rust-rescript-demo/issues/new) if you are interested in something specific.
